@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accessibility Scan Report</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/sortable.min.js"></script>
+
+<style>
+    /* Keep minimal styles for the sortable.js library, as Bootstrap doesn't style it */
+    table.sortable th:not(.sorttable_nosort):hover {
+        cursor: pointer;
+        background-color: #e9ecef;
+    }
+    table.sortable th:not(.sorttable_nosort)::after {
+        content: ' \25B2\25BC'; /* up/down arrows */
+        opacity: 0.3;
+    }
+    table.sortable th.sorttable_sorted::after,
+    table.sortable th.sorttable_sorted_reverse::after {
+        opacity: 1;
+    }
+</style>
+
+
+</head>
+<body class="bg-light py-4">
+<div class="container bg-white p-4 p-md-5 rounded shadow-sm">
+<h1 class="border-bottom pb-2 mb-3">Accessibility Scan Report</h1>
+
+    <section id="overall-report">
+        
+
+        
+        <h3 class="mt-5">Overall Trends Over Time</h3>
+
+        <p>These charts show the <strong>average</strong> score and issue counts across all scanned URLs for each run.</p>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="p-3 border rounded">
+                    <h4 class="h5">Average AIM Score Over Time</h4>
+                    <canvas id="overallAimScoreChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="p-3 border rounded">
+                    <h4 class="h5">Average Issues Over Time</h4>
+                    <canvas id="overallIssuesChart"></canvas>
+                </div>
+            </div>
+        </div>
+<hr>
+        <h3 class="mt-4">Summary Statistics (Latest Scan)</h3>
+        <div id="summaryStats"></div>
+        <hr>
+        <h3 class="mt-4">Scan Results by URL</h3>
+                <div class="row mb-4">
+            <div class="col-auto">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <label for="runSelect" class="col-form-label">Select Run:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select id="runSelect" class="form-select"></select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p>Click on column headers to sort the table.</p>
+        <div class="table-responsive">
+            <table id="latestRunTable" class="table table-striped table-bordered table-hover sortable">
+                <thead class="table-light">
+                    <tr>
+                        <th>URL</th>
+                        <th data-sortable-type="numeric">AIM Score</th>
+                        <th data-sortable-type="numeric">Errors</th>
+                        <th data-sortable-type="numeric">Contrast Errors</th>
+                        <th data-sortable-type="numeric">Alerts</th>
+                        <th class="sorttable_nosort">Screenshot</th>
+                    </tr>
+                </thead>
+                <tbody id="latestRunTableBody">
+                    </tbody>
+            </table>
+        </div>
+        
+    </section>
+    
+    <section id="url-report">
+        <h2 class="mt-5 border-bottom pb-2">URL Details Over Time</h2>
+        <div class="my-3">
+            <label for="urlSelect" class="form-label fw-bold">Select URL:</label>
+            <select id="urlSelect" class="form-select">
+                </select>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="p-3 border rounded">
+                    <h3 id="urlAimScoreChartTitle" class="h5">AIM Score Over Time</h3>
+                    <canvas id="urlAimScoreChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="p-3 border rounded">
+                    <h3 id="urlIssuesChartTitle" class="h5">Issues Over Time</h3>
+                    <canvas id="urlIssuesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="screenshotModal" tabindex="-1" aria-labelledby="screenshotModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="screenshotModalLabel">Screenshot</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" alt="Screenshot" class="img-fluid">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="fullData">
+    {{ full_data_json | safe }}
+</script>
+<script type="application/json" id="latestRunData">
+    {{ latest_run_data_json | safe }}
+</script>
+<script type="application/json" id="allUrls">
+    {{ all_urls_json | safe }}
+</script>
+<script type="application/json" id="overallTrendData">
+    {{ overall_trend_data_json | safe }}
+</script>
+<script type="application/json" id="allRuns">
+    {{ all_runs_json | safe }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+<script>
+    // Store chart instances globally to destroy them before redrawing
+    let urlAimScoreChart = null;
+    let urlIssuesChart = null;
+    let overallAimScoreChart = null;
+    let overallIssuesChart = null;
+
+    // Wait for the DOM to be fully loaded before running our script
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Parse the embedded JSON data
+        const fullData = JSON.parse(document.getElementById('fullData').textContent);
+        const latestRunData = JSON.parse(document.getElementById('latestRunData').textContent);
+        const allUrls = JSON.parse(document.getElementById('allUrls').textContent);
+        const overallTrendData = JSON.parse(document.getElementById('overallTrendData').textContent);
+        const allRuns = JSON.parse(document.getElementById('allRuns').textContent); // NEW: Get all run data
+
+        // 2. Convert timestamp strings back to Date objects for Chart.js
+        const parseDates = (data) => {
+            data.forEach(d => {
+                // Pandas 'to_json' will usually convert the UTC-aware datetime
+                // to a string like '2025-11-12T01:39:01.000Z'.
+                d.datetime = new Date(d.datetime);
+            });
+            return data;
+        };
+        
+        const allDataParsed = parseDates(fullData);
+        const latestDataParsed = parseDates(latestRunData);
+        const overallTrendDataParsed = parseDates(overallTrendData);
+
+        // 3. Run all the functions to build the report
+        if (latestDataParsed.length > 0) {
+            renderSummaryStats(latestDataParsed);
+            renderLatestRunTable(latestDataParsed);
+        }
+
+        if (overallTrendDataParsed.length > 0) {
+            renderOverallTrendCharts(overallTrendDataParsed);
+        }
+
+        if (allUrls.length > 0) {
+            populateUrlDropdown(allUrls);
+            
+            // Add event listener to update charts when dropdown changes
+            document.getElementById('urlSelect').addEventListener('change', (e) => {
+                updateUrlCharts(allDataParsed, e.target.value);
+            });
+            
+            // Trigger initial chart render for the first URL
+            updateUrlCharts(allDataParsed, allUrls[0]);
+        } else {
+            document.getElementById('url-report').innerHTML = "<h2>No data available to report.</h2>";
+        }
+        
+        // 4. Handle the Run Select dropdown
+        if (allRuns.length > 0) {
+            populateRunDropdown(allRuns);
+            
+            // Set the default to the latest run (first option)
+            const defaultRunUnixSeconds = parseInt(allRuns[0].unix_s);
+            const defaultRunData = filterDataByUnixSeconds(allDataParsed, defaultRunUnixSeconds);
+            
+            // Update stats and table for the default run
+            renderSummaryStats(defaultRunData);
+            renderLatestRunTable(defaultRunData);
+            
+            // Add event listener to update table/stats when dropdown changes
+            document.getElementById('runSelect').addEventListener('change', (e) => {
+                const selectedRunUnixSeconds = parseInt(e.target.value);
+                
+                // --- DEBUGGING (kept for quick validation) ---
+                console.log("--- Run Dropdown Changed ---");
+                console.log("Selected Unix Seconds:", selectedRunUnixSeconds);
+                // --- END DEBUGGING ---
+                
+                const selectedRunData = filterDataByUnixSeconds(allDataParsed, selectedRunUnixSeconds);
+                
+                // --- DEBUGGING (kept for quick validation) ---
+                console.log("Items found:", selectedRunData.length);
+                // --- END DEBUGGING ---
+
+                // Re-render the stats and table
+                renderSummaryStats(selectedRunData);
+                renderLatestRunTable(selectedRunData);
+            });
+        }
+
+
+        // 5. Add event listener for the screenshot modal
+        const screenshotModal = document.getElementById('screenshotModal');
+        if (screenshotModal) {
+            screenshotModal.addEventListener('show.bs.modal', (event) => {
+                // Button that triggered the modal
+                const button = event.relatedTarget;
+                
+                // Get the screenshot URL from the data attribute
+                const screenshotUrl = button.getAttribute('data-screenshot-url');
+                
+                // Get the page URL from the first cell of the same row
+                const row = button.closest('tr');
+                // Get text content directly, ignoring the links inside
+                const pageUrl = row.querySelector('td:first-child').firstChild.textContent.trim();
+
+                // Update the modal's content
+                const modalTitle = screenshotModal.querySelector('.modal-title');
+                const modalImage = screenshotModal.querySelector('.modal-body img');
+                
+                modalTitle.textContent = pageUrl;
+                modalImage.src = screenshotUrl;
+                modalImage.alt = `Screenshot for ${pageUrl}`;
+            });
+        }
+    });
+
+    /**
+     * Filters the full dataset to include only records matching the given Unix timestamp (in seconds).
+     */
+    function filterDataByUnixSeconds(data, unixSeconds) {
+        return data.filter(d => {
+            // d.datetime is a Date object (milliseconds). Convert to seconds for comparison.
+            const dataUnixSeconds = Math.floor(d.datetime.getTime() / 1000);
+            
+            // Compare the pure integer Unix timestamps
+            return dataUnixSeconds === unixSeconds;
+        });
+    }
+
+    /**
+     * Fills the Run dropdown menu.
+     */
+    function populateRunDropdown(runs) {
+        const select = document.getElementById('runSelect');
+        // 'runs' is already sorted newest-first from Python
+        // The 'value' uses the Unix timestamp (seconds)
+        const optionsHtml = runs.map(run => `
+            <option value="${run.unix_s}">${run.label}</option>
+        `).join('');
+        select.innerHTML = optionsHtml;
+    }
+
+
+    /**
+     * Renders the summary statistics blocks.
+     */
+    function renderSummaryStats(data) {
+        // ... (renderSummaryStats remains the same)
+        const avgScore = data.reduce((acc, d) => acc + d['AIM Score'], 0) / data.length;
+        const totalErrors = data.reduce((acc, d) => acc + d['Errors'], 0);
+        const totalContrast = data.reduce((acc, d) => acc + d['Contrast Errors'], 0);
+        const totalAlerts = data.reduce((acc, d) => acc + d['Alerts'], 0);
+
+        // Use Bootstrap grid for layout
+        const statsHtml = `
+            <ul class="list-unstyled row g-3">
+                <li class="col-6 col-md-4 col-lg-auto">
+                    <div class="p-3 bg-light border rounded">
+                        <strong class="d-block h5 text-primary">${data.length}</strong> Total URLs Scanned
+                    </div>
+                </li>
+                <li class="col-6 col-md-4 col-lg-auto">
+                     <div class="p-3 bg-light border rounded">
+                        <strong class="d-block h5 text-primary">${avgScore.toFixed(2)}</strong> Average AIM Score
+                    </div>
+                </li>
+                <li class="col-6 col-md-4 col-lg-auto">
+                     <div class="p-3 bg-light border rounded">
+                        <strong class="d-block h5 text-primary">${totalErrors}</strong> Total Errors
+                    </div>
+                </li>
+                <li class="col-6 col-md-4 col-lg-auto">
+                     <div class="p-3 bg-light border rounded">
+                        <strong class="d-block h5 text-primary">${totalContrast}</strong> Total Contrast Errors
+                    </div>
+                </li>
+                <li class="col-6 col-md-4 col-lg-auto">
+                     <div class="p-3 bg-light border rounded">
+                        <strong class="d-block h5 text-primary">${totalAlerts}</strong> Total Alerts
+                    </div>
+                </li>
+            </ul>
+        `;
+        document.getElementById('summaryStats').innerHTML = statsHtml;
+    }
+    
+    /**
+     * Populates the "Latest Run" summary table.
+     */
+    function renderLatestRunTable(data) {
+        const tableBody = document.getElementById('latestRunTableBody');
+        
+        const rowsHtml = data.map(d => `
+            <tr>
+                <td>
+                    ${d.url}
+                    <br>
+                    <small class="text-nowrap">
+                        [ <a href="${d.url}" target="_blank">Live Page</a> | <a href="https://wave.webaim.org/report#/${d.url}" target="_blank">WAVE Report</a> ]
+                    </small>
+                </td>
+                <td>${d['AIM Score']}</td>
+                <td>${d['Errors']}</td>
+                <td>${d['Contrast Errors']}</td>
+                <td>${d['Alerts']}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#screenshotModal" 
+                            data-screenshot-url="${d.screenshot_file}">
+                        View
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        tableBody.innerHTML = rowsHtml;
+        
+        // After populating the table, we need to tell the Sortable
+        // library to make the new table sortable.
+        const tableEl = document.getElementById('latestRunTable');
+        // Check if the table element is present and the Sortable library is loaded
+        if (tableEl && typeof Sortable !== 'undefined') {
+            // Remove the old class to allow re-initialization if the content was re-rendered
+            tableEl.classList.remove('sortable-initialized', 'sorttable_sorted', 'sorttable_sorted_reverse');
+            // Re-initialize only if it hasn't been done yet, or if you need to re-initialize on every data change (which is usually not required for sorting but safer here)
+            // For safety in single-page updates, we'll manually re-run the sortable setup logic.
+            // The provided Sortable library (tofsjonas) automatically scans for new tables when data is injected,
+            // but explicitly running new Sortable() again is often the safest way to ensure a fresh setup.
+            // However, since we are only changing the tbody content, a standard Sortable setup on DOMContentLoaded is enough.
+            // The most common error is trying to re-initialize it. Let's simplify and rely on the initial setup.
+            // Let's ensure the class is added once, to prevent multiple initializations.
+            if (!tableEl.classList.contains('sortable-initialized')) {
+                new Sortable(tableEl);
+                tableEl.classList.add('sortable-initialized');
+            }
+        }
+    }
+
+    /**
+     * Fills the URL dropdown menu.
+     */
+    function populateUrlDropdown(urls) {
+        const select = document.getElementById('urlSelect');
+        // Sort URLs alphabetically
+        urls.sort();
+        const optionsHtml = urls.map(url => `
+            <option value="${url}">${url}</option>
+        `).join('');
+        select.innerHTML = optionsHtml;
+    }
+
+    /**
+     * Renders the "Overall Trends" charts.
+     */
+    function renderOverallTrendCharts(trendData) {
+        // 1. Sort data by date
+        trendData.sort((a, b) => a.datetime - b.datetime);
+
+        // 2. Prepare data for charts
+        const labels = trendData.map(d => d.datetime);
+        const aimScores = trendData.map(d => d['AIM Score']);
+        const errors = trendData.map(d => d['Errors']);
+        const contrastErrors = trendData.map(d => d['Contrast Errors']);
+        const alerts = trendData.map(d => d['Alerts']);
+
+        // 3. Destroy old charts (if they exist)
+        if (overallAimScoreChart) {
+            overallAimScoreChart.destroy();
+        }
+        if (overallIssuesChart) {
+            overallIssuesChart.destroy();
+        }
+
+        // 4. Create new AIM Score line chart
+        const ctxAim = document.getElementById('overallAimScoreChart').getContext('2d');
+        overallAimScoreChart = new Chart(ctxAim, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average AIM Score',
+                    data: aimScores,
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        title: { display: true, text: 'Date of Scan Run' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: { display: true, text: 'Average AIM Score (Higher is Better)' }
+                    }
+                }
+            }
+        });
+
+        // 5. Create new Issues line chart
+        const ctxIssues = document.getElementById('overallIssuesChart').getContext('2d');
+        overallIssuesChart = new Chart(ctxIssues, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Average Errors',
+                        data: errors,
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Average Contrast Errors',
+                        data: contrastErrors,
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Average Alerts',
+                        data: alerts,
+                        borderColor: 'rgba(23, 162, 184, 1)',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        title: { display: true, text: 'Date of Scan Run' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Average Count (Lower is Better)' }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Updates the "Over Time" charts based on the selected URL.
+     */
+    function updateUrlCharts(fullData, selectedUrl) {
+        // 1. Filter data for the selected URL and sort by date
+        const urlData = fullData
+            .filter(d => d.url === selectedUrl)
+            .sort((a, b) => a.datetime - b.datetime);
+
+        // 2. Prepare data for charts
+        const labels = urlData.map(d => d.datetime);
+        const aimScores = urlData.map(d => d['AIM Score']);
+        const errors = urlData.map(d => d['Errors']);
+        const contrastErrors = urlData.map(d => d['Contrast Errors']);
+        const alerts = urlData.map(d => d['Alerts']);
+        
+        // 3. Update chart titles
+        const shortUrl = selectedUrl.length > 70 ? selectedUrl.substring(0, 70) + '...' : selectedUrl;
+        document.getElementById('urlAimScoreChartTitle').innerText = `AIM Score: ${shortUrl}`;
+        document.getElementById('urlIssuesChartTitle').innerText = `Issues: ${shortUrl}`;
+        
+        // 4. Destroy old charts (if they exist)
+        if (urlAimScoreChart) {
+            urlAimScoreChart.destroy();
+        }
+        if (urlIssuesChart) {
+            urlIssuesChart.destroy();
+        }
+
+        // 5. Create new AIM Score line chart
+        const ctxAim = document.getElementById('urlAimScoreChart').getContext('2d');
+        urlAimScoreChart = new Chart(ctxAim, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'AIM Score',
+                    data: aimScores,
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        title: { display: true, text: 'Date' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: { display: true, text: 'AIM Score' }
+                    }
+                }
+            }
+        });
+
+        // 6. Create new Issues line chart
+        const ctxIssues = document.getElementById('urlIssuesChart').getContext('2d');
+        urlIssuesChart = new Chart(ctxIssues, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Errors',
+                        data: errors,
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Contrast Errors',
+                        data: contrastErrors,
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Alerts',
+                        data: alerts,
+                        borderColor: 'rgba(23, 162, 184, 1)',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'day' },
+                        title: { display: true, text: 'Date' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Count' }
+                    }
+                }
+            }
+        });
+    }
+
+</script>
+
+
+</body>
+</html>

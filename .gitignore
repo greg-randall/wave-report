@@ -1,0 +1,11 @@
+*.csv
+*.json
+*.jsonl
+*.png
+*.jpg
+*.jpeg
+*.7z
+*.zip
+*.html
+*.txt
+old/*
