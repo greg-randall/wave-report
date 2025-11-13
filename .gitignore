@@ -9,3 +9,4 @@
 *.html
 *.txt
 old/*
+!screenshot.jpg
