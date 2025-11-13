@@ -1,6 +1,6 @@
-# WAVE Accessibility Scanner & Reporter
+Here is the updated documentation:
 
-![Example Report Screenshot](screenshot.jpg)
+# WAVE Accessibility Scanner & Reporter
 
 This project helps you automatically check websites for accessibility problems. It uses the **WAVE WebAIM tool** to scan a list of URLs, saves the results (including screenshots), and then builds a beautiful, interactive HTML report to show you the data and how it changes over time.
 
@@ -9,13 +9,24 @@ This project helps you automatically check websites for accessibility problems. 
   * **Automated Scanning:** Runs WAVE on as many URLs as you want from a simple text file.
   * **Data Logging:** Saves all results to `results.csv` and `results.jsonl` for your records.
   * **Visual Proof:** Takes a screenshot of the full WAVE report page for each scan.
-  * **Interactive Report:** Builds a single, self contained `report.html` file with charts and sortable tables.
+  * **Interactive Report:** Builds a single, self-contained `report.html` file with charts and sortable tables.
   * **Trend Tracking:** See how accessibility scores (like the AIM Score) and error counts change over time for each site.
   * **Run Comparison:** The report lets you easily switch between different scan runs to compare results.
 
 -----
 
-## 🚀 How to Use
+## �️ Compatibility
+
+This tool has been tested and confirmed to work in the following environments:
+
+  * Windows (using **PowerShell**)
+  * Linux (specifically via **WSL** - Windows Subsystem for Linux)
+
+It should work on any system that can run Python 3, Google Chrome, and the required libraries.
+
+-----
+
+## � How to Use
 
 Follow these steps to run your first scan and generate a report.
 
@@ -87,13 +98,13 @@ Follow these steps to run your first scan and generate a report.
 
 ### Step 5: View Your Report
 
-You're done\! Just **double click the `report.html` file** to open it in your regular web browser.
+You're done\! Just **double-click the `report.html` file** to open it in your regular web browser.
 
-You can re run Step 3 and Step 4 as many times as you like. Each time you run the scan, new data will be added, and the report will update to show your new trends.
+You can re-run Step 3 and Step 4 as many times as you like. Each time you run the scan, new data will be added, and the report will update to show your new trends.
 
 -----
 
-## 📁 File Descriptions
+## � File Descriptions
 
   * `run.py`
     The main scanner. This script uses `nodriver` to control Chrome, runs the scans, and saves the data and screenshots.
