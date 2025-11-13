@@ -1,5 +1,7 @@
 # WAVE Accessibility Scanner & Reporter
 
+![Example Report Screenshot](screenshot.jpg)
+
 This project helps you automatically check websites for accessibility problems. It uses the **WAVE WebAIM tool** to scan a list of URLs, saves the results (including screenshots), and then builds a beautiful, interactive HTML report to show you the data and how it changes over time.
 
 ## ✨ Features
