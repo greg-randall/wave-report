@@ -13,3 +13,4 @@ old/*
 !screenshot.jpg
 !requirements.txt
 __pycache__/*
+screenshots/*
