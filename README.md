@@ -1,19 +1,20 @@
 # WAVE Accessibility Scanner & Reporter
 
-This project helps you automatically check websites for accessibility problems. It uses the **WAVE WebAIM tool** to scan a list of URLs, saves the results (including screenshots), and then builds a beautiful, interactive HTML report to show you the data and how it changes over time.
+This project automates accessibility testing for websites. It uses the **WAVE WebAIM tool** to scan a list of URLs, saves the results (including screenshots), and generates an interactive HTML report to visualize the data and track changes over time.
 
-## ✨ Features
+## Features
 
   * **Automated Scanning:** Runs WAVE on as many URLs as you want from a simple text file.
   * **Data Logging:** Saves all results to `results.csv` and `results.jsonl` for your records.
-  * **Visual Proof:** Takes a screenshot of the full WAVE report page for each scan.
+  * **Visual Proof:** Takes a WebP screenshot of the full WAVE report page for each scan (automatically compressed from PNG).
+  * **Progress Bars:** Shows real-time progress during scans (or detailed logging with `--verbose` flag).
   * **Interactive Report:** Builds a single, self-contained `report.html` file with charts and sortable tables.
   * **Trend Tracking:** See how accessibility scores (like the AIM Score) and error counts change over time for each site.
   * **Run Comparison:** The report lets you easily switch between different scan runs to compare results.
 
 -----
 
-## �️ Compatibility
+## Compatibility
 
 This tool has been tested and confirmed to work in the following environments:
 
@@ -24,7 +25,7 @@ It should work on any system that can run Python 3, Google Chrome, and the requi
 
 -----
 
-## � How to Use
+## How to Use
 
 Follow these steps to run your first scan and generate a report.
 
@@ -35,7 +36,13 @@ Follow these steps to run your first scan and generate a report.
 2.  **Install Libraries:** Open your terminal and install the required Python packages:
 
     ```bash
-    pip install nodriver pandas jinja2
+    pip install -r requirements.txt
+    ```
+
+    Or install individually:
+
+    ```bash
+    pip install nodriver pandas jinja2 tqdm Pillow
     ```
 
 ### Step 2: Add Your URLs
@@ -66,21 +73,40 @@ Follow these steps to run your first scan and generate a report.
       * Open Google Chrome.
       * Visit the WAVE report page for each URL in `urls.txt`.
       * Wait for the report to finish.
-      * Take a screenshot.
+      * Take a screenshot and convert it to WebP format.
       * Save all the data.
+
+    By default, you'll see two progress bars:
+      * **Overall Progress:** Shows how many pages have been scanned.
+      * **Current Page:** Shows the 6 steps for the page being scanned.
 
 3.  **Outputs:** This step creates and adds to the following:
 
       * `results.csv`: The main data file for all your scans.
       * `results.jsonl`: A JSON-line version of the data.
-      * `screenshots/`: A new folder containing all the screenshots.
+      * `screenshots/`: A new folder containing all the screenshots (in WebP format).
 
-> **Note:** The script waits a random time (between 5 and 35 seconds by default) on each page. This helps prevent the scanner from being blocked. You can change this with arguments:
->
-> ```bash
-> # Wait between 10 and 40 seconds instead
-> python run.py --min-sleep 10 --max-sleep 40
-> ```
+#### Command-Line Options
+
+**Verbose Mode:**
+```bash
+# Show detailed logging instead of progress bars
+python run.py --verbose
+```
+
+**Adjust Wait Times:**
+The script waits a random time (between 5 and 35 seconds by default) on each page to allow it to fully load. You can change this:
+
+```bash
+# Wait between 10 and 40 seconds instead
+python run.py --min-sleep 10 --max-sleep 40
+```
+
+**Combine Options:**
+```bash
+# Use verbose logging with custom wait times
+python run.py --verbose --min-sleep 10 --max-sleep 40
+```
 
 ### Step 4: Generate the Report
 
@@ -96,13 +122,13 @@ Follow these steps to run your first scan and generate a report.
 
 ### Step 5: View Your Report
 
-You're done\! Just **double-click the `report.html` file** to open it in your regular web browser.
+Open the `report.html` file in your web browser to view the results.
 
-You can re-run Step 3 and Step 4 as many times as you like. Each time you run the scan, new data will be added, and the report will update to show your new trends.
+You can re-run Step 3 and Step 4 as many times as you like. Each time you run the scan, new data will be added, and the report will update to show trends over time.
 
 -----
 
-## � File Descriptions
+## File Descriptions
 
   * `run.py`
     The main scanner. This script uses `nodriver` to control Chrome, runs the scans, and saves the data and screenshots.
@@ -115,7 +141,7 @@ You can re-run Step 3 and Step 4 as many times as you like. Each time you run th
 
 -----
 
-## ⚠️ Troubleshooting
+## Troubleshooting
 
   * **"Google Chrome Not Found" Error:**
     The `run.py` script needs Google Chrome to be installed in its default location. If you see this error, it means the script can't find it. The error message will give you instructions on how to edit `run.py` to point to your exact Chrome location.
