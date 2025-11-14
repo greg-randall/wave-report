@@ -156,30 +156,36 @@ def save_to_csv(filename: str, data: dict):
 
 # TASK: Create the main async processing function `process_url`
 async def process_url(
-    tab: uc.Tab, 
-    url: str, 
-    min_sleep: int, 
+    tab: uc.Tab,
+    url: str,
+    min_sleep: int,
     max_sleep: int,
-    run_unix_ts: int,    # <-- ADDED
-    run_human_ts: str    # <-- ADDED
+    run_unix_ts: int,
+    run_human_ts: str,
+    verbose: bool = False
 ) -> dict | None:
     """
     Processes a single URL: navigates to WAVE, waits for results,
     takes a screenshot, and scrapes the accessibility data.
     """
+    # Create a progress bar for this page if not in verbose mode
+    page_steps = ['Navigate', 'Wait for settle', 'Wait for AIM', 'Wait for spinner', 'Screenshot', 'Scrape data']
+    page_progress = tqdm(total=len(page_steps), desc=f"  {url[:50]}", unit="step", leave=False, disable=verbose, position=1)
+
     try:
         # TASK: `process_url`: Navigate and set viewport
         wave_url = f"https://wave.webaim.org/report#/{url}"
         await tab.get(wave_url)
+        page_progress.update(1)  # Navigate complete
 
         # --- NEW: Wait random time for page to settle ---
-        # Wait a random amount of time after loading the page,
-        # but before we start scraping.
         sleep_duration = random.randint(min_sleep, max_sleep)
-        logging.info(f"Waiting {sleep_duration}s for page to settle...")
+        if verbose:
+            logging.info(f"Waiting {sleep_duration}s for page to settle...")
         await asyncio.sleep(sleep_duration)
+        page_progress.update(1)  # Wait for settle complete
         # --- END NEW ---
-        
+
         # Set a standard desktop viewport
         await tab.send(uc.cdp.emulation.set_device_metrics_override(
             width=1920,
@@ -190,29 +196,32 @@ async def process_url(
 
         # TASK: `process_url`: Wait for report to load
         # Step 1: Wait for the AIM score value to be present (max 60s)
-        # This confirms the analysis is complete and data is available.
-        logging.info(f"Waiting for AIM score for {url}...")
+        if verbose:
+            logging.info(f"Waiting for AIM score for {url}...")
         await tab.select("span#aim-score-value", timeout=60)
-        logging.info(f"AIM score found for {url}.")
+        if verbose:
+            logging.info(f"AIM score found for {url}.")
+        page_progress.update(1)  # Wait for AIM complete
 
 
         # --- MODIFIED SECTION ---
         # Step 2: Manually poll for the spinner to disappear
-        logging.info(f"Waiting for spinner to disappear for {url}...")
+        if verbose:
+            logging.info(f"Waiting for spinner to disappear for {url}...")
         try:
             timeout = 30  # 30 seconds timeout
             start_time = asyncio.get_event_loop().time()
             spinner_gone = False
-            
+
             while (asyncio.get_event_loop().time() - start_time) < timeout:
                 # Check if the element exists at all
                 spinner = await tab.query_selector("#wave5_loading")
-                
+
                 if not spinner:
                     # It's gone from the DOM
                     spinner_gone = True
                     break
-                
+
                 # If it exists, check its display style
                 try:
                     display_style = await spinner.style.get_property_value('display')
@@ -223,34 +232,66 @@ async def process_url(
                 except Exception:
                     # Style property might not be accessible yet, just means it's not 'none'
                     pass
-                    
+
                 await asyncio.sleep(0.5)  # Poll every 500ms
 
             if spinner_gone:
-                logging.info(f"Spinner is gone for {url}.")
+                if verbose:
+                    logging.info(f"Spinner is gone for {url}.")
                 # Step 3: Add a 1-second delay just to be safe
-                logging.info("Waiting 1 extra second for rendering...")
+                if verbose:
+                    logging.info("Waiting 1 extra second for rendering...")
                 await asyncio.sleep(1)
             else:
-                logging.warning(f"Spinner did NOT disappear for {url} after {timeout}s. Taking screenshot anyway.")
+                msg = f"Spinner did NOT disappear for {url} after {timeout}s. Taking screenshot anyway."
+                if verbose:
+                    logging.warning(msg)
+                else:
+                    tqdm.write(f"WARNING: {msg}")
 
         except Exception as e:
             # This is not critical.
-            logging.warning(f"Spinner check failed for {url}, proceeding anyway... ({e})")
+            msg = f"Spinner check failed for {url}, proceeding anyway... ({e})"
+            if verbose:
+                logging.warning(msg)
+            else:
+                tqdm.write(f"WARNING: {msg}")
         # --- END MODIFIED SECTION ---
+        page_progress.update(1)  # Wait for spinner complete
 
         # TASK: `process_url`: Generate timestamps and screenshot paths
         # --- MODIFIED: Use the timestamp passed from main ---
         sanitized_url = sanitize_filename(url)
-        
-        # Use the run's unix timestamp for the filename
-        screenshot_filename = f"{run_unix_ts}_{sanitized_url}_{uuid.uuid4()}.png"
-        screenshot_path = Path("screenshots") / screenshot_filename
+
+        # Use the run's unix timestamp for the filename (temporary PNG, final WebP)
+        screenshot_filename_png = f"{run_unix_ts}_{sanitized_url}_{uuid.uuid4()}.png"
+        screenshot_path_png = Path("screenshots") / screenshot_filename_png
+
+        screenshot_filename_webp = screenshot_filename_png.replace('.png', '.webp')
+        screenshot_path_webp = Path("screenshots") / screenshot_filename_webp
         # --- END MODIFIED ---
 
         # TASK: `process_url`: Take and save screenshot
-        # Step 4: Take the screenshot
-        await tab.save_screenshot(screenshot_path, format='png')
+        # Step 4: Take the screenshot as PNG, then convert to WebP
+        await tab.save_screenshot(screenshot_path_png, format='png')
+
+        # Convert PNG to WebP with compression
+        try:
+            img = Image.open(screenshot_path_png)
+            img.save(screenshot_path_webp, 'WEBP', quality=85, method=6)
+            # Delete the original PNG file
+            screenshot_path_png.unlink()
+        except Exception as e:
+            msg = f"Failed to convert screenshot to WebP for {url}: {e}"
+            if verbose:
+                logging.warning(msg)
+            else:
+                tqdm.write(f"WARNING: {msg}")
+            # If conversion fails, keep the PNG
+            screenshot_path_webp = screenshot_path_png
+            screenshot_filename_webp = screenshot_filename_png
+
+        page_progress.update(1)  # Screenshot complete
         # --- END MODIFIED ---
 
         # TASK: `process_url`: Extract data using selectors
@@ -297,32 +338,50 @@ async def process_url(
         })
 
         # TASK: `process_url`: Package and return final data
-        # --- MODIFIED: Use passed-in timestamps ---
+        # --- MODIFIED: Use passed-in timestamps and WebP path ---
+        page_progress.update(1)  # Scrape data complete
+        page_progress.close()  # Close the progress bar
+
         return {
             "url": url,
             "timestamp": run_unix_ts,
             "timestamp_h": run_human_ts,
-            "screenshot_file": str(screenshot_path),
+            "screenshot_file": str(screenshot_path_webp),
             "results": results_list
         }
         # --- END MODIFIED ---
 
     except Exception as e:
         # Catch-all for any error during processing (timeout, element not found, etc.)
-        logging.error(f"Failed to process {url}: {e}")
+        page_progress.close()  # Close the progress bar even on error
+        msg = f"Failed to process {url}: {e}"
+        if verbose:
+            logging.error(msg)
+        else:
+            tqdm.write(f"ERROR: {msg}")
         return None
 
 
 # TASK: Create the main async function
 
 # TASK: Create the main async function
-async def main(min_sleep: int, max_sleep: int):
+async def main(min_sleep: int, max_sleep: int, verbose: bool = False):
     """
     Main function to initialize, run the browser, and process all URLs.
     """
     # TASK: `main`: Initialize browser and environment
-    logging.basicConfig(level=logging.INFO, 
+    # Configure logging level based on verbose mode
+    log_level = logging.INFO if verbose else logging.WARNING
+    logging.basicConfig(level=log_level,
                         format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Suppress nodriver and asyncio error messages unless verbose
+    if not verbose:
+        logging.getLogger('nodriver').setLevel(logging.CRITICAL)
+        logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+        # Suppress the "Task exception was never retrieved" messages
+        import warnings
+        warnings.filterwarnings('ignore')
     
     # Create screenshots directory if it doesn't exist
     Path("screenshots").mkdir(exist_ok=True)
@@ -372,17 +431,23 @@ async def main(min_sleep: int, max_sleep: int):
     # --- END NEW ---
 
     # TASK: `main`: Loop and process URLs
-    for url in urls:
-        logging.info(f"Processing {url}...")
+    # Create progress bar for overall progress if not in verbose mode
+    url_iterator = tqdm(urls, desc="Overall Progress", unit="page", disable=verbose) if not verbose else urls
+
+    for url in url_iterator:
+        if verbose:
+            logging.info(f"Processing {url}...")
+
         # Pass the sleep times and timestamps into the processing function
-        # --- MODIFIED: Pass timestamps ---
+        # --- MODIFIED: Pass timestamps and verbose flag ---
         data = await process_url(
-            tab, 
-            url, 
-            min_sleep, 
+            tab,
+            url,
+            min_sleep,
             max_sleep,
             run_unix_ts,    # <-- Pass run timestamp
-            run_human_ts    # <-- Pass run timestamp
+            run_human_ts,   # <-- Pass run timestamp
+            verbose=verbose # <-- Pass verbose flag
         )
         # --- END MODIFIED ---
 
@@ -390,9 +455,15 @@ async def main(min_sleep: int, max_sleep: int):
         if data:
             save_to_jsonl('results.jsonl', data)
             save_to_csv('results.csv', data)
-            logging.info(f"Successfully saved data for {url}")
+            if verbose:
+                logging.info(f"Successfully saved data for {url}")
         else:
-            logging.warning(f"No data returned for {url}. Skipping save.")
+            # Always show warnings (use tqdm.write if progress bar is active)
+            msg = f"No data returned for {url}. Skipping save."
+            if verbose:
+                logging.warning(msg)
+            else:
+                tqdm.write(f"WARNING: {msg}")
 
     # TASK: `main`: Add cleanup
     logging.info("Scan complete.")
@@ -419,6 +490,11 @@ if __name__ == "__main__":
         default=35,
         help="Maximum time (in seconds) to wait for page to settle. (Default: 35)"
     )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help="Enable verbose output with detailed logging. (Default: False, shows progress bars)"
+    )
     args = parser.parse_args()
 
     # Validate sleep times
@@ -432,6 +508,6 @@ if __name__ == "__main__":
 
     try:
         # Pass args to main
-        uc.loop().run_until_complete(main(args.min_sleep, args.max_sleep))
+        uc.loop().run_until_complete(main(args.min_sleep, args.max_sleep, args.verbose))
     except KeyboardInterrupt:
         logging.info("Scan interrupted by user. Exiting.")
