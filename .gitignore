@@ -11,3 +11,4 @@
 *.txt
 old/*
 !screenshot.jpg
+!requirements.txt
