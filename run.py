@@ -365,9 +365,15 @@ async def process_url(
 # TASK: Create the main async function
 
 # TASK: Create the main async function
-async def main(min_sleep: int, max_sleep: int, verbose: bool = False):
+async def main(min_sleep: int, max_sleep: int, verbose: bool = False, input_file: str = 'urls.txt'):
     """
     Main function to initialize, run the browser, and process all URLs.
+
+    Args:
+        min_sleep: Minimum time to wait for page to settle
+        max_sleep: Maximum time to wait for page to settle
+        verbose: If True, show detailed logging; if False, show progress bars
+        input_file: Path to file containing URLs to scan
     """
     # TASK: `main`: Initialize browser and environment
     # Configure logging level based on verbose mode
@@ -390,9 +396,9 @@ async def main(min_sleep: int, max_sleep: int, verbose: bool = False):
     initialize_csv('results.csv')
     
     # Get URLs to process
-    urls = get_urls('urls.txt')
+    urls = get_urls(input_file)
     if not urls:
-        logging.error("No URLs found in urls.txt. Exiting.")
+        logging.error(f"No URLs found in {input_file}. Exiting.")
         return
 
     # TASK: `main`: Start browser and get tab
@@ -495,6 +501,12 @@ if __name__ == "__main__":
         action='store_true',
         help="Enable verbose output with detailed logging. (Default: False, shows progress bars)"
     )
+    parser.add_argument(
+        '-i', '--input',
+        type=str,
+        default='urls.txt',
+        help="Input file containing URLs, one per line. (Default: urls.txt)"
+    )
     args = parser.parse_args()
 
     # Validate sleep times
@@ -508,6 +520,6 @@ if __name__ == "__main__":
 
     try:
         # Pass args to main
-        uc.loop().run_until_complete(main(args.min_sleep, args.max_sleep, args.verbose))
+        uc.loop().run_until_complete(main(args.min_sleep, args.max_sleep, args.verbose, args.input))
     except KeyboardInterrupt:
         logging.info("Scan interrupted by user. Exiting.")

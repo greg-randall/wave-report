@@ -88,6 +88,14 @@ Follow these steps to run your first scan and generate a report.
 
 #### Command-Line Options
 
+**Custom Input File:**
+```bash
+# Use a different file instead of urls.txt
+python run.py --input myurls.txt
+# or use short form
+python run.py -i myurls.txt
+```
+
 **Verbose Mode:**
 ```bash
 # Show detailed logging instead of progress bars
@@ -104,8 +112,8 @@ python run.py --min-sleep 10 --max-sleep 40
 
 **Combine Options:**
 ```bash
-# Use verbose logging with custom wait times
-python run.py --verbose --min-sleep 10 --max-sleep 40
+# Use custom input file with verbose logging and custom wait times
+python run.py -i myurls.txt --verbose --min-sleep 10 --max-sleep 40
 ```
 
 ### Step 4: Generate the Report
