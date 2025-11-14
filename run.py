@@ -21,6 +21,8 @@ from pathlib import Path
 import argparse  # Added for command-line arguments
 import random    # Added for random sleep
 import uuid
+from tqdm import tqdm  # Added for progress bars
+from PIL import Image  # Added for WebP conversion
 
 
 # Import nodriver
